@@ -90,7 +90,8 @@ class _DisplayPageState extends State<DisplayPage> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(children: [
+        // expand: sonst richtet sich der Stack nach dem 0x0-Fokus-Platzhalter und schneidet alles ab.
+        body: Stack(fit: StackFit.expand, children: [
           Positioned.fill(
             child: Transform.translate(
               offset: shift,

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">Blendet Kuechenstatus, QR-Code zum Bestellen und "Bitte abholen"-Meldungen des order.manager ueber dem aktuellen Bild ein. Waehrend einer Meldung schliessen OK/Zurueck diese. Es werden keine Bildschirminhalte gelesen.</string>
+</resources>

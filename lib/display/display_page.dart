@@ -35,7 +35,13 @@ class _DisplayPageState extends State<DisplayPage> {
   void initState() {
     super.initState();
     _poller.addListener(_rebuild);
-    _lifecycle = AppLifecycleListener(onResume: _onResume);
+    _lifecycle = AppLifecycleListener(
+      onResume: _onResume,
+      // App im Hintergrund -> die Einblendung darf wieder erscheinen.
+      onShow: () => NativeBridge.setDisplayOpen(true),
+      onHide: () => NativeBridge.setDisplayOpen(false),
+    );
+    NativeBridge.setDisplayOpen(true);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _clock = Timer.periodic(const Duration(seconds: 10), (_) => setState(() => _now = DateTime.now()));
     _load();
@@ -72,13 +78,13 @@ class _DisplayPageState extends State<DisplayPage> {
     _poller.removeListener(_rebuild);
     _poller.dispose();
     NativeBridge.setKeepScreenOn(false);
+    NativeBridge.setDisplayOpen(false);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final day = _poller.day;
     final pickup = _poller.pickup;
     // Gegen Einbrennen: Inhalt wandert minuetlich um wenige Pixel.
     final shift = Offset(math.sin(_now.minute * 0.7) * 6, math.cos(_now.minute * 0.7) * 6);
@@ -92,61 +98,86 @@ class _DisplayPageState extends State<DisplayPage> {
         backgroundColor: Colors.black,
         // expand: sonst richtet sich der Stack nach dem 0x0-Fokus-Platzhalter und schneidet alles ab.
         body: Stack(fit: StackFit.expand, children: [
-          Positioned.fill(
-            child: Transform.translate(
-              offset: shift,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 20, 32, 16),
-                  child: Column(children: [
-                    _header(),
-                    const SizedBox(height: 16),
-                    Expanded(child: day != null ? _DayView(day: day) : _idle()),
-                    const SizedBox(height: 8),
-                    const Text('Zurück: Einstellungen', style: TextStyle(color: Colors.white24, fontSize: 13)),
-                  ]),
-                ),
+          Transform.translate(
+            offset: shift,
+            child: SafeArea(
+              child: DisplayContent(
+                config: _config,
+                day: _poller.day,
+                status: _poller.lastStatus,
+                now: _now,
               ),
             ),
           ),
           // Fokussierbares Element, damit OK/Zurueck auf der Fernbedienung ankommen.
           if (pickup == null) const Focus(autofocus: true, child: SizedBox.shrink()),
           if (pickup != null)
-            Positioned.fill(
-              child: PickupPopup(
-                items: pickup,
-                since: _poller.pickupSince,
-                durationSeconds: _config.pickupSeconds,
-                onClose: _poller.dismiss,
-                showCloseButton: true,
-              ),
+            PickupPopup(
+              items: pickup,
+              since: _poller.pickupSince,
+              durationSeconds: _config.pickupSeconds,
+              onClose: _poller.dismiss,
+              showCloseButton: true,
             ),
         ]),
       ),
     );
   }
+}
 
-  Widget _header() {
-    final error = _poller.lastStatus == OrderFetchStatus.error;
+/// Inhalt der Vollbild-Anzeige – auch fuer die Vorschau in den Einstellungen.
+/// QR-Code und Schrift lassen sich getrennt skalieren (auf einem 65"-Fernseher ist 100 % riesig).
+class DisplayContent extends StatelessWidget {
+  final AppConfig config;
+  final OrderDay? day;
+  final OrderFetchStatus? status;
+  final DateTime now;
+
+  const DisplayContent({super.key, required this.config, required this.day, required this.status, required this.now});
+
+  double get _text => config.displayTextPercent / 100;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = _text;
+    final d = day;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(32, 20 * t, 32, 16 * t),
+      child: Column(children: [
+        _header(t),
+        SizedBox(height: 16 * t),
+        Expanded(
+          child: d != null
+              ? _DayView(day: d, qrFraction: config.displayQrPercent / 100, textScale: t)
+              : _idle(t),
+        ),
+        SizedBox(height: 8 * t),
+        Text('Zurück: Einstellungen', style: TextStyle(color: Colors.white24, fontSize: 13 * t)),
+      ]),
+    );
+  }
+
+  Widget _header(double t) {
+    final error = status == OrderFetchStatus.error;
     return Row(children: [
-      Image.asset('assets/logo.png', width: 36, height: 36, filterQuality: FilterQuality.medium),
-      const SizedBox(width: 12),
-      const Text('Bestellung', style: TextStyle(color: Colors.white54, fontSize: 18, fontWeight: FontWeight.w600)),
+      Image.asset('assets/logo.png', width: 36 * t, height: 36 * t, filterQuality: FilterQuality.medium),
+      SizedBox(width: 12 * t),
+      Text('Bestellung', style: TextStyle(color: Colors.white54, fontSize: 18 * t, fontWeight: FontWeight.w600)),
       const Spacer(),
       if (error) ...[
-        const Icon(Icons.cloud_off, color: Colors.redAccent, size: 20),
-        const SizedBox(width: 6),
-        const Text('order.manager nicht erreichbar', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
-        const SizedBox(width: 20),
+        Icon(Icons.cloud_off, color: Colors.redAccent, size: 20 * t),
+        SizedBox(width: 6 * t),
+        Text('order.manager nicht erreichbar', style: TextStyle(color: Colors.redAccent, fontSize: 14 * t)),
+        SizedBox(width: 20 * t),
       ],
-      Text(_time(_now), style: const TextStyle(color: Colors.white70, fontSize: 28, fontWeight: FontWeight.w300)),
+      Text(_time(now), style: TextStyle(color: Colors.white70, fontSize: 28 * t, fontWeight: FontWeight.w300)),
     ]);
   }
 
-  Widget _idle() {
-    final (icon, title, text) = !_config.isConfigured
+  Widget _idle(double t) {
+    final (icon, title, text) = !config.isConfigured
         ? (Icons.link_off, 'Noch nicht eingerichtet', 'Zurück drücken und unter „Verbindung“ das order.manager-Konto eintragen.')
-        : switch (_poller.lastStatus) {
+        : switch (status) {
             null => (Icons.hourglass_top, 'Verbinde…', ''),
             OrderFetchStatus.unauthorized => (
                 Icons.lock_outline,
@@ -154,18 +185,21 @@ class _DisplayPageState extends State<DisplayPage> {
                 'E-Mail/Passwort falsch oder Konto nicht freigeschaltet.'
               ),
             OrderFetchStatus.error => (Icons.cloud_off, 'order.manager nicht erreichbar', 'Neuer Versuch läuft…'),
-            OrderFetchStatus.ok => (Icons.restaurant, 'Heute kein Bestelltag', _date(_now)),
+            OrderFetchStatus.ok => (Icons.restaurant, 'Heute kein Bestelltag', _date(now)),
           };
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 72, color: Colors.white24),
-        const SizedBox(height: 16),
-        Text(title, style: const TextStyle(color: Colors.white54, fontSize: 32, fontWeight: FontWeight.w600)),
-        if (text.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white38, fontSize: 18)),
-        ],
-      ]),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 72 * t, color: Colors.white24),
+          SizedBox(height: 16 * t),
+          Text(title, style: TextStyle(color: Colors.white54, fontSize: 32 * t, fontWeight: FontWeight.w600)),
+          if (text.isNotEmpty) ...[
+            SizedBox(height: 8 * t),
+            Text(text, textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 18 * t)),
+          ],
+        ]),
+      ),
     );
   }
 
@@ -177,33 +211,45 @@ class _DisplayPageState extends State<DisplayPage> {
   }
 }
 
-/// Bestelltag gross: links Titel, Status und Gaenge, rechts der QR-Code (hochkant: untereinander).
+/// Bestelltag: Titel, Status und Gaenge neben dem QR-Code (hochkant: untereinander),
+/// zusammen in der Mitte – so bleibt beides beieinander, auch wenn es kleiner gestellt ist.
 class _DayView extends StatelessWidget {
   final OrderDay day;
-  const _DayView({required this.day});
+
+  /// Anteil der groesstmoeglichen QR-Code-Groesse (0..1).
+  final double qrFraction;
+
+  /// Faktor auf die automatisch angepasste Schriftgroesse.
+  final double textScale;
+
+  const _DayView({required this.day, required this.qrFraction, required this.textScale});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
       final landscape = c.maxWidth >= c.maxHeight;
-      final qr = landscape ? math.min(c.maxHeight, c.maxWidth * 0.48) : math.min(c.maxWidth, c.maxHeight * 0.55);
-      final s = (math.min(c.maxWidth, c.maxHeight * 1.6) / 900).clamp(0.6, 2.5);
+      final qrMax = landscape ? math.min(c.maxHeight, c.maxWidth * 0.48) : math.min(c.maxWidth, c.maxHeight * 0.55);
+      final qr = qrMax * qrFraction;
+      final s = (math.min(c.maxWidth, c.maxHeight * 1.6) / 900).clamp(0.6, 2.5) * textScale;
       final info = _info(s);
-      return landscape
-          ? Row(children: [
-              Expanded(child: Align(alignment: Alignment.centerLeft, child: info)),
-              SizedBox(width: 32 * s),
-              QrBox(day: day, size: qr),
-            ])
-          : Column(children: [
-              Expanded(child: Center(child: info)),
-              SizedBox(height: 24 * s),
-              QrBox(day: day, size: qr),
-            ]);
+      return Center(
+        child: landscape
+            ? Row(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(child: info),
+                SizedBox(width: 48 * s),
+                QrBox(day: day, size: qr),
+              ])
+            : Column(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(child: info),
+                SizedBox(height: 24 * s),
+                QrBox(day: day, size: qr),
+              ]),
+      );
     });
   }
 
   Widget _info(double s) {
+    // Bei zu wenig Platz lieber verkleinern als abschneiden.
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,

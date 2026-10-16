@@ -232,6 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _modeSection(),
             if (_config.mode == DisplayMode.app) _appSection(),
             if (_config.mode == DisplayMode.overlay) _overlaySection(),
+            _fullscreenSection(),
           ]),
           tab([_pickupSection()]),
           tab([_serviceSection(), _serverSection()]),
@@ -295,6 +296,30 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
       ]);
 
+  /// Groesse von QR-Code und Schrift – in jedem Modus, „Anzeige starten“ gibt es immer.
+  Widget _fullscreenSection() => SectionCard(title: 'Vollbild-Anzeige', icon: Icons.aspect_ratio, children: [
+        const Text(
+          'Auf großen Fernsehern ist alles schnell riesig – hier verkleinern. '
+          'Die Vorschau zeigt die Anzeige maßstabsgetreu für diesen Bildschirm.',
+          style: TextStyle(color: Colors.white54),
+        ),
+        const SizedBox(height: 12),
+        _displayPreview(),
+        const SizedBox(height: 8),
+        StepperRow(
+          label: 'Größe QR-Code',
+          value: '${_config.displayQrPercent} %',
+          onDec: _config.displayQrPercent > 20 ? () => _set(() => _config.displayQrPercent -= 5) : null,
+          onInc: _config.displayQrPercent < 100 ? () => _set(() => _config.displayQrPercent += 5) : null,
+        ),
+        StepperRow(
+          label: 'Schriftgröße',
+          value: '${_config.displayTextPercent} %',
+          onDec: _config.displayTextPercent > 40 ? () => _set(() => _config.displayTextPercent -= 10) : null,
+          onInc: _config.displayTextPercent < 200 ? () => _set(() => _config.displayTextPercent += 10) : null,
+        ),
+      ]);
+
   Widget _appSection() => SectionCard(title: 'App-Anzeige', icon: Icons.fit_screen, children: [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -327,6 +352,36 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ]);
+
+  /// Die Vollbild-Anzeige in Bildschirmgroesse gebaut und verkleinert – Proportionen wie am Geraet.
+  Widget _displayPreview() {
+    final screen = MediaQuery.sizeOf(context);
+    return AspectRatio(
+      aspectRatio: screen.width / screen.height,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white24, width: 2),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: FittedBox(
+          child: SizedBox(
+            width: screen.width,
+            height: screen.height,
+            child: ColoredBox(
+              color: Colors.black,
+              child: DisplayContent(
+                config: _config,
+                day: _server?.day ?? OrderDay.demo,
+                status: OrderFetchStatus.ok,
+                now: DateTime.now(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _overlaySection() {
     final c = _config;

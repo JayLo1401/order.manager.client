@@ -52,6 +52,11 @@ class MainActivity : FlutterActivity() {
                         result.success(service != null)
                     }
 
+                    "setDisplayOpen" -> {
+                        OrderOverlayService.instance?.setDisplayOpen(call.argument<Boolean>("open") == true)
+                        result.success(null)
+                    }
+
                     "setKeepScreenOn" -> {
                         if (call.argument<Boolean>("on") == true) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

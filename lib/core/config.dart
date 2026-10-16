@@ -71,6 +71,12 @@ class AppConfig {
   bool launchOnBoot = false;
   bool keepScreenOn = true;
 
+  /// Groesse des QR-Codes in der Vollbild-Anzeige (100 % = so gross wie moeglich).
+  int displayQrPercent = 100;
+
+  /// Schriftgroesse der Vollbild-Anzeige (100 % = an die Bildschirmgroesse angepasst).
+  int displayTextPercent = 100;
+
   // Einblendung ueber anderen Apps
   OverlayPosition overlayPosition = OverlayPosition.bottomRight;
   OverlayLayout overlayLayout = OverlayLayout.wide;
@@ -104,6 +110,8 @@ class AppConfig {
       ..openDisplayOnStart = p.getBool('open_display_on_start') ?? true
       ..launchOnBoot = p.getBool('launch_on_boot') ?? false
       ..keepScreenOn = p.getBool('keep_screen_on') ?? true
+      ..displayQrPercent = (p.getInt('display_qr_percent') ?? 100).clamp(20, 100)
+      ..displayTextPercent = (p.getInt('display_text_percent') ?? 100).clamp(40, 200)
       ..overlayPosition = OverlayPosition.parse(p.getString('overlay_position'))
       ..overlayLayout = OverlayLayout.parse(p.getString('overlay_layout'))
       ..overlayWidthPercent = (p.getInt('overlay_width_percent') ?? 30).clamp(10, 80)
@@ -127,6 +135,8 @@ class AppConfig {
     await p.setBool('open_display_on_start', openDisplayOnStart);
     await p.setBool('launch_on_boot', launchOnBoot);
     await p.setBool('keep_screen_on', keepScreenOn);
+    await p.setInt('display_qr_percent', displayQrPercent);
+    await p.setInt('display_text_percent', displayTextPercent);
     await p.setString('overlay_position', overlayPosition.name);
     await p.setString('overlay_layout', overlayLayout.name);
     await p.setInt('overlay_width_percent', overlayWidthPercent);

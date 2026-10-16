@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import io.flutter.FlutterInjector
@@ -124,12 +125,15 @@ class OrderOverlayService : AccessibilityService() {
     /** Kleines Fenster: Breite relativ zur Bildschirmbreite, Hoehe ueber das Seitenverhaeltnis. */
     private fun cardParams(args: Map<String, Any?>): WindowManager.LayoutParams {
         val (screenW, screenH) = screenSize()
+        val bars = systemBarInsets()
         val widthFraction = (args["widthFraction"] as? Number)?.toDouble() ?: 0.3
         val aspect = (args["aspect"] as? Number)?.toDouble() ?: 0.62
         val marginFraction = (args["marginFraction"] as? Number)?.toDouble() ?: 0.02
         val margin = (screenW * marginFraction).toInt()
-        val w = (screenW * widthFraction).toInt().coerceIn(80, screenW - 2 * margin)
-        val h = (w * aspect).toInt().coerceIn(60, screenH - 2 * margin)
+        val usableW = screenW - bars.left - bars.right
+        val usableH = screenH - bars.top - bars.bottom
+        val w = (screenW * widthFraction).toInt().coerceIn(80, (usableW - 2 * margin).coerceAtLeast(80))
+        val h = (w * aspect).toInt().coerceIn(60, (usableH - 2 * margin).coerceAtLeast(60))
         val position = args["position"] as? String ?: "bottomRight"
         val vertical = when {
             position.startsWith("top") -> Gravity.TOP
@@ -148,8 +152,16 @@ class OrderOverlayService : AccessibilityService() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = vertical or horizontal
-            x = if (horizontal == Gravity.CENTER_HORIZONTAL) 0 else margin
-            y = if (vertical == Gravity.CENTER_VERTICAL) 0 else margin
+            x = when (horizontal) {
+                Gravity.LEFT -> margin + bars.left
+                Gravity.RIGHT -> margin + bars.right
+                else -> 0
+            }
+            y = when (vertical) {
+                Gravity.TOP -> margin + bars.top
+                Gravity.BOTTOM -> margin + bars.bottom
+                else -> 0
+            }
         }
     }
 
@@ -163,6 +175,19 @@ class OrderOverlayService : AccessibilityService() {
         windowManager.defaultDisplay.getRealMetrics(m)
         return m.widthPixels to m.heightPixels
     }
+
+    /** Status-/Navigationsleisten (auf dem TV meist 0), damit die Karte nicht darunter liegt. */
+    private fun systemBarInsets(): Insets {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val i = windowManager.maximumWindowMetrics.windowInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
+            )
+            return Insets(i.left, i.top, i.right, i.bottom)
+        }
+        return Insets(0, 0, 0, 0)
+    }
+
+    private data class Insets(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
     private fun showWindow(params: WindowManager.LayoutParams) {
         startEngine()
@@ -236,6 +261,11 @@ class OrderOverlayService : AccessibilityService() {
     /** Einblendung kurz zur Probe zeigen. */
     fun preview() {
         channel?.invokeMethod("preview", null)
+    }
+
+    /** Die Vollbild-Anzeige der App ist offen bzw. zu – solange sie offen ist, keine Karte darueber. */
+    fun setDisplayOpen(open: Boolean) {
+        channel?.invokeMethod("displayOpen", open)
     }
 
     /** „Bitte abholen“ mit Beispieldaten. */

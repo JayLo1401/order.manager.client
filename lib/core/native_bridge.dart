@@ -20,6 +20,9 @@ class NativeBridge {
   /// „Bitte abholen“ ueber den Dienst testen; `false`, wenn der Dienst nicht laeuft.
   static Future<bool> testPickup() async => await _ch.invokeMethod<bool>('testPickup') ?? false;
 
+  /// Vollbild-Anzeige offen/zu – solange sie offen ist, blendet der Dienst keine Karte darueber.
+  static Future<void> setDisplayOpen(bool open) => _ch.invokeMethod('setDisplayOpen', {'open': open});
+
   /// Display bleibt an (FLAG_KEEP_SCREEN_ON), solange die Anzeige offen ist.
   static Future<void> setKeepScreenOn(bool on) => _ch.invokeMethod('setKeepScreenOn', {'on': on});
 

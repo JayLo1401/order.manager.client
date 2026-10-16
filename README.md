@@ -15,13 +15,17 @@ Wird eine Bestellung in der Küche fertig, erscheint über allem **„Bitte abho
 
 Die App ersetzt die Bestell-Kachel und das „Bitte abholen“-Popup, die bisher in home.radio eingebaut waren.
 
+| Vollbild-Anzeige | Größe einstellen | Einstellungen |
+| --- | --- | --- |
+| ![Vollbild-Anzeige](docs/screenshots/vollbild.png) | ![Größe einstellen](docs/screenshots/vollbild-groesse.png) | ![Einstellungen](docs/screenshots/einstellungen.png) |
+
 ## Funktionen
 
 ### Drei Anzeigemodi
 
 | Modus | Was passiert |
 | --- | --- |
-| **App-Anzeige** | Die App bleibt offen und zeigt Titel, Küchenstatus, Gänge und einen großen QR-Code im Vollbild. Das Display geht dabei nicht aus, auch der Bildschirmschoner startet nicht. Auf Wunsch öffnet sich die Anzeige direkt beim Start der App oder nach dem Einschalten des Geräts. |
+| **App-Anzeige** | Die App bleibt offen und zeigt Titel, Küchenstatus, Gänge und einen QR-Code im Vollbild. Das Display geht dabei nicht aus, auch der Bildschirmschoner startet nicht. QR-Code und Schrift lassen sich getrennt verkleinern, damit es auf einem 65"-Fernseher nicht riesig wird. Die Einstellungen zeigen dazu eine maßstabsgetreue Vorschau. Auf Wunsch öffnet sich die Anzeige direkt beim Start der App oder nach dem Einschalten des Geräts. |
 | **Einblendung über anderen Apps** | Die App läuft im Hintergrund. An Bestelltagen liegt ein kleines Fenster mit Status und QR-Code über jeder App, zum Beispiel über home.radio oder Spotify. Position (3×3-Raster), Größe, Abstand zum Rand, Deckkraft und Aufbau („breit“ oder „kompakt“) sind einstellbar. Das Fenster lässt sich nicht anklicken und nimmt der App darunter nicht den Fokus. |
 | **Nur Abhol-Meldungen** | Keine Daueranzeige, nur „Bitte abholen“. |
 

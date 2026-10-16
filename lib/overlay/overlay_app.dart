@@ -33,6 +33,9 @@ class _OverlayAppState extends State<OverlayApp> {
   AppConfig _config = AppConfig();
   Timer? _previewTimer;
   bool _preview = false;
+
+  /// Die Vollbild-Anzeige der App zeigt gerade dasselbe – dann keine Karte darueber.
+  bool _displayOpen = false;
   String _window = '';
 
   @override
@@ -69,6 +72,9 @@ class _OverlayAppState extends State<OverlayApp> {
           _update();
         });
         await _reload();
+      case 'displayOpen':
+        _displayOpen = call.arguments == true;
+        _update();
       case 'testPickup':
         _poller.showDemo();
       case 'dismiss':
@@ -81,7 +87,7 @@ class _OverlayAppState extends State<OverlayApp> {
   OrderDay? get _cardDay {
     if (_preview) return _poller.day ?? OrderDay.demo;
     final day = _poller.day;
-    if (_config.mode != DisplayMode.overlay || day == null) return null;
+    if (_config.mode != DisplayMode.overlay || day == null || _displayOpen) return null;
     if (day.isClosed && !_config.overlayWhenClosed) return null;
     return day;
   }

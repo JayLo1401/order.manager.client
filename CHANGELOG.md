@@ -10,6 +10,10 @@ Erste Version. Übernimmt die Bestellfunktionen, die bisher in home.radio eingeb
 - Die Einblendung ist in Position (3×3), Größe, Randabstand, Deckkraft und Aufbau (breit/kompakt) einstellbar,
   mit Skizze und Vorschau.
 - Auf Wunsch öffnet sich die App nach dem Einschalten des Geräts automatisch.
+- Vollbild-Anzeige: Größe von QR-Code (20–100 %) und Schrift (40–200 %) getrennt einstellbar, mit maßstabsgetreuer
+  Vorschau in den Einstellungen. Text und QR-Code stehen zusammen in der Mitte.
+- Solange die Vollbild-Anzeige offen ist, liegt keine Einblendung darüber.
+- Die Einblendung hält Abstand zu Status- und Navigationsleiste (z.B. auf Tablets).
 
 ### Bitte abholen
 

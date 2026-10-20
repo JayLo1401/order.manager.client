@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $variant = if ($Release) { 'release' } else { 'debug' }
-$package = 'org.lotzapp.order_manager_client'
+$package = 'at.jaycloud.order.manager.client'
 $serviceComponent = "$package/.OrderOverlayService"
 
 function Find-Adb {

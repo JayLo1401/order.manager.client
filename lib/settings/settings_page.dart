@@ -7,6 +7,7 @@ import '../display/display_page.dart';
 import '../order/order_service.dart';
 import '../widgets/order_card.dart';
 import '../widgets/pickup_popup.dart';
+import 'backup_section.dart';
 import 'widgets.dart';
 
 const _homepage = 'https://github.com/JayLo1401/order.manager.client';
@@ -94,6 +95,13 @@ class _SettingsPageState extends State<SettingsPage> {
     // Der Dienst (Einblendung, Abhol-Meldungen) uebernimmt die Aenderungen sofort.
     await NativeBridge.reloadOverlayConfig();
     if (mounted) setState(() {});
+  }
+
+  /// Sicherung speichern und uebernehmen – auch im Hintergrunddienst.
+  Future<void> _restoreBackup(AppConfig restored) async {
+    await restored.save();
+    await NativeBridge.reloadOverlayConfig();
+    await _load();
   }
 
   void _set(VoidCallback fn) {
@@ -235,7 +243,11 @@ class _SettingsPageState extends State<SettingsPage> {
             _fullscreenSection(),
           ]),
           tab([_pickupSection()]),
-          tab([_serviceSection(), _serverSection()]),
+          tab([
+            _serviceSection(),
+            _serverSection(),
+            BackupSection(config: _config, onRestore: _restoreBackup),
+          ]),
         ]),
         bottomNavigationBar: _statusBar(),
       ),
@@ -583,7 +595,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ? 'Autostart abgesichert: Der Dienst schaltet sich nach Neustart, Update oder „Beenden erzwingen“ '
                   '(beim nächsten Öffnen der App) selbst wieder ein.'
               : 'Autostart nicht abgesichert. Einmalig am PC ausführen:\n'
-                  'adb shell pm grant org.lotzapp.order_manager_client android.permission.WRITE_SECURE_SETTINGS',
+                  'adb shell pm grant at.jaycloud.order.manager.client android.permission.WRITE_SECURE_SETTINGS',
         ),
         const SizedBox(height: 12),
         Align(

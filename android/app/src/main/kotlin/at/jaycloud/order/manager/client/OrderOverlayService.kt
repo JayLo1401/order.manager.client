@@ -1,4 +1,4 @@
-package org.lotzapp.order_manager_client
+package at.jaycloud.order.manager.client
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent

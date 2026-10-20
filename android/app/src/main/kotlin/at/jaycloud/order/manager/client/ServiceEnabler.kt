@@ -1,4 +1,4 @@
-package org.lotzapp.order_manager_client
+package at.jaycloud.order.manager.client
 
 import android.Manifest
 import android.content.ComponentName
@@ -10,7 +10,7 @@ import android.util.Log
 /**
  * Schaltet den Hintergrunddienst selbst wieder ein (z.B. nach „Beenden erzwingen“ oder
  * einem Update). Geht nur mit WRITE_SECURE_SETTINGS, das einmalig per adb erteilt wird:
- * `adb shell pm grant org.lotzapp.order_manager_client android.permission.WRITE_SECURE_SETTINGS`
+ * `adb shell pm grant at.jaycloud.order.manager.client android.permission.WRITE_SECURE_SETTINGS`
  */
 object ServiceEnabler {
     private const val TAG = "OrderClient"

@@ -1,4 +1,4 @@
-package org.lotzapp.order_manager_client
+package at.jaycloud.order.manager.client
 
 import android.content.Intent
 import android.os.Build
@@ -19,6 +19,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        flutterEngine.plugins.add(BackupPlugin())
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "order_manager_client/native")
             .setMethodCallHandler { call, result ->
                 when (call.method) {

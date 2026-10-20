@@ -59,7 +59,7 @@ Von Hand:
 1. APK installieren.
 2. In den **Bedienungshilfen** den Dienst **„Order Manager Client“** einschalten.
 3. Empfohlen, einmalig am PC:
-   `adb shell pm grant org.lotzapp.order_manager_client android.permission.WRITE_SECURE_SETTINGS`
+   `adb shell pm grant at.jaycloud.order.manager.client android.permission.WRITE_SECURE_SETTINGS`
    Damit schaltet sich der Dienst nach Neustart, Update oder „Beenden erzwingen“ selbst wieder ein.
 
 ## Einrichten
@@ -118,7 +118,7 @@ lib/
   display/                  App-Anzeige im Vollbild
   overlay/                  UI der Engine im Hintergrunddienst
   settings/                 Einstellungen
-android/app/src/main/kotlin/org/lotzapp/order_manager_client/
+android/app/src/main/kotlin/at/jaycloud/order/manager/client/
   OrderOverlayService.kt    Bedienungshilfe: Engine, Einblendungs-Fenster, OK/Zurück
   Chime.kt                  Gong (synthetisiert) mit Audio-Ducking
   MainActivity.kt           Kanal für die App (Display an, Dienststatus, …)

@@ -1,4 +1,4 @@
-package org.lotzapp.order_manager_client
+package at.jaycloud.order.manager.client
 
 import android.content.Context
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unveröffentlicht
+
+- Einheitliche Namen wie bei allen JayCloud-Apps: Der volle Name ist „JayCloud Order Manager Client“. In der App und
+  unter dem App-Symbol bleibt es „Order Manager Client“. Die Kopfzeile zeigt jetzt „Powered by jaycloud.at“ und
+  öffnet jaycloud.at. Die App-ID `at.jaycloud.order.manager.client` bleibt gleich.
+
 ## 1.0.0
 
 Erste Version. Übernimmt die Bestellfunktionen, die bisher in home.radio eingebaut waren.

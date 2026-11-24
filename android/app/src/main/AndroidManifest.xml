@@ -79,7 +79,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Browser fuer "Powered by Jay" -->
+        <!-- Browser fuer "Powered by jaycloud.at" -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />

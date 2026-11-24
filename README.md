@@ -1,13 +1,15 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Order Manager Client" width="180">
+  <img src="docs/logo.png" alt="JayCloud Order Manager Client" width="180">
 </p>
 
-<h1 align="center">Order Manager Client</h1>
+<h1 align="center">JayCloud Order Manager Client</h1>
 
 <p align="center">
   <b>Bestell-Anzeige für den <a href="https://github.com/JayLo1401/order.manager">order.manager</a> auf Android TV</b><br>
-  Powered by Jay
+  Powered by <a href="https://jaycloud.at">jaycloud.at</a>
 </p>
+
+In der App und unter dem App-Symbol heißt sie kurz **Order Manager Client**.
 
 Am Bestelltag zeigt die TV-Box den **QR-Code zum Bestellen** und den **Küchenstatus** („🍕 Pizzen werden angenommen“).
 Wird eine Bestellung in der Küche fertig, erscheint über allem **„Bitte abholen“** mit Gong. Laufende Musik

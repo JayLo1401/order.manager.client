@@ -10,7 +10,7 @@ import '../widgets/pickup_popup.dart';
 import 'backup_section.dart';
 import 'widgets.dart';
 
-const _homepage = 'https://github.com/JayLo1401/order.manager.client';
+const _homepage = 'https://jaycloud.at';
 
 class SettingsPage extends StatefulWidget {
   /// Beim App-Start: im Modus „App-Anzeige“ direkt die Anzeige oeffnen.
@@ -212,7 +212,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () async {
                   if (!await NativeBridge.openUrl(_homepage)) _snack('Kein Browser gefunden: $_homepage');
                 },
-                child: const Text('Powered by Jay',
+                child: const Text('Powered by jaycloud.at',
                     style: TextStyle(color: brandGreen, fontWeight: FontWeight.w600, fontSize: 12, height: 1.3)),
               ),
             ]),

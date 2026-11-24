@@ -12,6 +12,7 @@ object NativePrefs {
     private const val FLUTTER_FILE = "FlutterSharedPreferences"
     private const val NATIVE_FILE = "order_manager_client_native"
     private const val KEY_LAUNCH_PENDING = "launch_pending"
+    private const val KEY_REOPEN_AFTER_UPDATE = "reopen_after_update"
 
     private fun flutter(context: Context) = context.getSharedPreferences(FLUTTER_FILE, Context.MODE_PRIVATE)
 
@@ -27,10 +28,19 @@ object NativePrefs {
         context.getSharedPreferences(NATIVE_FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_LAUNCH_PENDING, true).apply()
     }
 
-    fun takeLaunchPending(context: Context): Boolean {
+    fun takeLaunchPending(context: Context): Boolean = take(context, KEY_LAUNCH_PENDING)
+
+    /** Vor einem Selbst-Update: war die Vollbild-Anzeige offen, nach dem Update wieder oeffnen. */
+    fun setReopenAfterUpdate(context: Context, reopen: Boolean) {
+        context.getSharedPreferences(NATIVE_FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_REOPEN_AFTER_UPDATE, reopen).apply()
+    }
+
+    fun takeReopenAfterUpdate(context: Context): Boolean = take(context, KEY_REOPEN_AFTER_UPDATE)
+
+    private fun take(context: Context, key: String): Boolean {
         val p = context.getSharedPreferences(NATIVE_FILE, Context.MODE_PRIVATE)
-        val pending = p.getBoolean(KEY_LAUNCH_PENDING, false)
-        if (pending) p.edit().putBoolean(KEY_LAUNCH_PENDING, false).apply()
-        return pending
+        val set = p.getBoolean(key, false)
+        if (set) p.edit().putBoolean(key, false).apply()
+        return set
     }
 }

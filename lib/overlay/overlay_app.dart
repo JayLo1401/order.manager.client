@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../core/config.dart';
 import '../core/theme.dart';
+import '../core/update_service.dart';
 import '../order/order_poller.dart';
 import '../order/order_service.dart';
 import '../widgets/order_card.dart';
@@ -44,6 +45,34 @@ class _OverlayAppState extends State<OverlayApp> {
     _channel.setMethodCallHandler(_onCall);
     _poller.addListener(_update);
     _reload();
+    if (UpdateService.supported) _updateTimer = Timer(const Duration(minutes: 2), _autoUpdate);
+  }
+
+  Timer? _updateTimer;
+
+  /// Automatisches Update: kurz nach dem Start des Dienstes, dann alle 6
+  /// Stunden – nie, waehrend „Bitte abholen“ zu sehen ist oder heute
+  /// Bestellungen angenommen werden (die Anzeige waere sonst kurz weg).
+  Future<void> _autoUpdate() async {
+    if (_busy) {
+      _updateTimer = Timer(const Duration(minutes: 30), _autoUpdate);
+      return;
+    }
+    _updateTimer = Timer(const Duration(hours: 6), _autoUpdate);
+    try {
+      if (!await UpdateService.autoUpdate() || !await UpdateService.canInstall()) return;
+      final update = await UpdateService.check();
+      if (update == null || _busy) return;
+      debugPrint('Auto-Update auf ${update.version}');
+      await UpdateService.install(update, reopenApp: _displayOpen);
+    } catch (e) {
+      debugPrint('Auto-Update fehlgeschlagen: $e');
+    }
+  }
+
+  bool get _busy {
+    final day = _poller.day;
+    return _poller.pickup != null || (day != null && !day.isClosed);
   }
 
   Future<void> _reload() async {
@@ -120,6 +149,7 @@ class _OverlayAppState extends State<OverlayApp> {
   @override
   void dispose() {
     _previewTimer?.cancel();
+    _updateTimer?.cancel();
     _poller.removeListener(_update);
     _poller.dispose();
     super.dispose();

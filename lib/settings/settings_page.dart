@@ -8,6 +8,7 @@ import '../order/order_service.dart';
 import '../widgets/order_card.dart';
 import '../widgets/pickup_popup.dart';
 import 'backup_section.dart';
+import 'update_section.dart';
 import 'widgets.dart';
 
 const _homepage = 'https://jaycloud.at';
@@ -246,6 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
           tab([
             _serviceSection(),
             _serverSection(),
+            const UpdateSection(),
             BackupSection(config: _config, onRestore: _restoreBackup),
           ]),
         ]),

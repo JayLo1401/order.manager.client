@@ -5,6 +5,10 @@
 - Einheitliche Namen wie bei allen JayCloud-Apps: Der volle Name ist „JayCloud Order Manager Client“. In der App und
   unter dem App-Symbol bleibt es „Order Manager Client“. Die Kopfzeile zeigt jetzt „Powered by jaycloud.at“ und
   öffnet jaycloud.at. Die App-ID `at.jaycloud.order.manager.client` bleibt gleich.
+- Automatische Updates wie bei home.control: Jeder Push auf `main` baut per GitHub Actions eine signierte APK und
+  lädt sie ins Nexus. Der Hintergrunddienst installiert neue Versionen selbst (alle 6 Stunden, nicht während
+  Bestellungen angenommen werden oder „Bitte abholen“ zu sehen ist). Eine offene Vollbild-Anzeige öffnet sich danach
+  wieder. Einstellbar unter Verbindung → Updates.
 
 ## 1.0.0
 

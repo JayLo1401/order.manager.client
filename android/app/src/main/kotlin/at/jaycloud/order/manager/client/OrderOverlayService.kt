@@ -74,6 +74,7 @@ class OrderOverlayService : AccessibilityService() {
                 "overlayMain"
             )
         )
+        e.plugins.add(UpdatePlugin())
         val ch = MethodChannel(e.dartExecutor.binaryMessenger, CHANNEL)
         ch.setMethodCallHandler { call, result ->
             when (call.method) {

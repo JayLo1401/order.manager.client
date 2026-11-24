@@ -20,6 +20,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.plugins.add(BackupPlugin())
+        flutterEngine.plugins.add(UpdatePlugin())
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "order_manager_client/native")
             .setMethodCallHandler { call, result ->
                 when (call.method) {

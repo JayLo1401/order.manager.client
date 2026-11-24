@@ -1,0 +1,156 @@
+name: Release
+
+# Gleich wie bei home.control. Jeder Push auf main baut ein Release (ein
+# einziger Job, damit keine Artefakte zwischen Jobs in GitHub gespeichert
+# werden muessen):
+#   1. Version aus den Commits seit dem letzten Tag v* (siehe
+#      .github/scripts/prepare_release.py). Es wird nichts zurueck-committet:
+#      die Version geht als --build-name in den Build, der versionCode ist
+#      100 + Laufnummer (immer hoeher als die von Hand gebauten Versionen).
+#   2. Tests, signierte APK, Upload in das Nexus-Raw-Repository:
+#        <NEXUS_URL>/repository/<NEXUS_REPO>/android/release/<version>/order_manager_client-<version>.apk
+#        <NEXUS_URL>/repository/<NEXUS_REPO>/android/release/latest/order_manager_client.apk
+#      jeweils mit version.json - die liest der Updater in der App
+#      (lib/core/update_service.dart).
+#   3. Tag v<version> und GitHub-Release nur mit Notizen und Links zum Nexus -
+#      die APK liegt ausschliesslich im Nexus. Schlaegt etwas fehl, gibt es
+#      keinen Tag, und der naechste Push baut dieselbe Version neu.
+#
+# Secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD (der gemeinsame jaycloud-Schluessel -
+# Android aktualisiert nur bei gleicher Signatur), NEXUS_USER, NEXUS_PASS.
+# Variablen (optional): NEXUS_URL (Standard https://repository.jaycloud.at),
+# NEXUS_REPO (Standard order.manager.client). Das Repository muss anonym lesbar sein.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.44.9"
+  UPDATE_BASE_URL: ${{ vars.NEXUS_URL || 'https://repository.jaycloud.at' }}/repository/${{ vars.NEXUS_REPO || 'order.manager.client' }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Naechste Version
+        run: |
+          git fetch origin --tags --force
+          BASE_REF="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          BASE_VERSION="${BASE_REF#v}"
+          export BASE_REF BASE_VERSION NOTES_PATH="$RUNNER_TEMP/release_notes.md"
+          VERSION="$(python3 .github/scripts/prepare_release.py)"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$((100 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
+          echo "Version $VERSION (Basis ${BASE_REF:-pubspec.yaml})"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Analyse und Tests
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos
+          flutter test
+      - name: Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "::error::Secret ANDROID_KEYSTORE_BASE64 fehlt"; exit 1; }
+          echo "$KEYSTORE_BASE64" | grep -v -- '-----' | base64 -d > android/app/release.jks
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=release.jks
+          EOF
+      - name: Build
+        run: |
+          flutter build apk --release \
+            --build-name="$VERSION" --build-number="$BUILD_NUMBER" \
+            --dart-define=UPDATE_BASE_URL="$UPDATE_BASE_URL"
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/order_manager_client-$VERSION.apk"
+      - name: Signatur pruefen
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -n1)
+          "$APKSIGNER" verify --print-certs "dist/order_manager_client-$VERSION.apk" | head -3
+      - name: Upload nach Nexus
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+        run: |
+          [ -n "$NEXUS_USER" ] || { echo "::error::Secret NEXUS_USER fehlt"; exit 1; }
+          # Nexus mit "Disable redeploy" antwortet beim Ueberschreiben (latest/,
+          # Wiederholung nach Fehlschlag) mit 409 - dann loeschen und neu hochladen.
+          upload() {
+            local code
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -u "$NEXUS_USER:$NEXUS_PASS" \
+              -H "Content-Type: application/octet-stream" --upload-file "$1" "$2")
+            if [ "$code" = 409 ]; then
+              curl -sSf -u "$NEXUS_USER:$NEXUS_PASS" -X DELETE "$2" -o /dev/null
+              code=$(curl -sS -o /dev/null -w '%{http_code}' -u "$NEXUS_USER:$NEXUS_PASS" \
+                -H "Content-Type: application/octet-stream" --upload-file "$1" "$2")
+            fi
+            case "$code" in 2??) echo "OK  $2" ;; *) echo "::error::Upload $2 -> HTTP $code"; return 1 ;; esac
+          }
+          BASE="$UPDATE_BASE_URL/android/release"
+          FILE="order_manager_client-$VERSION.apk"
+          SHA=$(sha256sum "dist/$FILE" | cut -d' ' -f1)
+          echo "SHA256=$SHA" >> "$GITHUB_ENV"
+          cat > dist/version.json <<EOF
+          {
+            "version": "$VERSION",
+            "versionCode": $BUILD_NUMBER,
+            "url": "$BASE/$VERSION/$FILE",
+            "sha256": "$SHA"
+          }
+          EOF
+          cat dist/version.json
+          upload "dist/$FILE" "$BASE/$VERSION/$FILE"
+          upload "dist/$FILE" "$BASE/latest/order_manager_client.apk"
+          upload dist/version.json "$BASE/$VERSION/version.json"
+          # Zuletzt: erst jetzt sehen die Geraete die neue Version.
+          upload dist/version.json "$BASE/latest/version.json"
+      - name: Tag und GitHub-Release (ohne Dateien)
+        run: |
+          TAG="v$VERSION"
+          URL="$UPDATE_BASE_URL/android/release/$VERSION/order_manager_client-$VERSION.apk"
+          {
+            cat "$RUNNER_TEMP/release_notes.md"
+            echo
+            echo "## Download"
+            echo
+            echo "[order_manager_client-$VERSION.apk]($URL) – Android TV / Android (alle Geräte)"
+            echo
+            echo "SHA-256: \`$SHA256\`"
+            echo
+            echo "Installierte Apps aktualisieren sich danach selbst (Einstellungen → Verbindung → Updates)."
+          } > "$RUNNER_TEMP/notes.md"
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+          gh release create "$TAG" --title "JayCloud Order Manager Client $VERSION" --notes-file "$RUNNER_TEMP/notes.md" --latest

@@ -53,16 +53,31 @@ Die App ersetzt die Bestell-Kachel und das „Bitte abholen“-Popup, die bisher
 ./scripts/deploy.ps1 -Release -EnableService -Launch
 ```
 
-Das Skript baut die APK, installiert sie auf den gewählten adb-Geräten und erteilt die Autostart-Berechtigung.
-Mit `-EnableService` schaltet es auch gleich den Hintergrunddienst ein.
+Das Skript baut die APK, installiert sie auf den gewählten adb-Geräten und erteilt die Autostart- und die
+Update-Berechtigung. Mit `-EnableService` schaltet es auch gleich den Hintergrunddienst ein.
 
 Von Hand:
 
-1. APK installieren.
+1. APK aus dem Nexus installieren:
+   <https://repository.jaycloud.at/repository/order.manager.client/android/release/latest/order_manager_client.apk>
 2. In den **Bedienungshilfen** den Dienst **„Order Manager Client“** einschalten.
 3. Empfohlen, einmalig am PC:
    `adb shell pm grant at.jaycloud.order.manager.client android.permission.WRITE_SECURE_SETTINGS`
    Damit schaltet sich der Dienst nach Neustart, Update oder „Beenden erzwingen“ selbst wieder ein.
+4. Für automatische Updates „Unbekannte Apps installieren“ erlauben. Auf TV-Boxen ohne diese Seite einmalig am PC:
+   `adb shell appops set at.jaycloud.order.manager.client REQUEST_INSTALL_PACKAGES allow`
+
+### Updates
+
+Wie bei home.control: Jeder Push auf `main` baut per GitHub Actions ([release.yml](.github/workflows/release.yml))
+eine signierte APK und lädt sie ins Nexus (`order.manager.client`). Die Version ergibt sich aus den Commits
+(`feat:` → Minor, `fix:` und alles andere → Patch, `!`/`BREAKING CHANGE` → Major). Der Hintergrunddienst sucht alle
+6 Stunden nach einer neuen Version und installiert sie, aber nicht, während Bestellungen angenommen werden oder
+„Bitte abholen“ zu sehen ist. War die Vollbild-Anzeige offen, öffnet sie sich danach wieder. Abschalten und von Hand
+suchen: **Verbindung → Updates**. Lokal gebaute Versionen aktualisieren sich nicht selbst.
+
+Damit Android aktualisiert, muss die installierte App mit dem gemeinsamen jaycloud-Schlüssel signiert sein (Release-Build).
+Eine Debug-Installation muss einmal deinstalliert werden.
 
 ## Einrichten
 
@@ -114,7 +129,7 @@ Projektstruktur:
 ```
 lib/
   main.dart                 Einstieg App (main) und Hintergrunddienst (overlayMain)
-  core/                     Theme (wie home.control), Einstellungen, Kanal zur Android-Seite
+  core/                     Theme (wie home.control), Einstellungen, Kanal zur Android-Seite, Updater
   order/                    API-Client und Abfrage-Logik (Bestelltag, „Bitte abholen“)
   widgets/                  Status-/QR-Karte, „Bitte abholen“-Popup
   display/                  App-Anzeige im Vollbild
@@ -124,6 +139,7 @@ android/app/src/main/kotlin/at/jaycloud/order/manager/client/
   OrderOverlayService.kt    Bedienungshilfe: Engine, Einblendungs-Fenster, OK/Zurück
   Chime.kt                  Gong (synthetisiert) mit Audio-Ducking
   MainActivity.kt           Kanal für die App (Display an, Dienststatus, …)
+  UpdatePlugin.kt           Selbst-Update über den PackageInstaller
   BootReceiver.kt, ServiceEnabler.kt, NativePrefs.kt
 ```
 
